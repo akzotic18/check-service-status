@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Server Service Status Checker</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<div class="container mt-5">
+  <h2 class="mb-4">Check Server Service Status</h2>
+
+  <form id="checkForm">
+    <div class="row mb-3">
+      <div class="col-md-4">
+        <label for="baseHost" class="form-label">Base Server Host</label>
+        <input type="text" class="form-control" id="baseHost" required>
+      </div>
+      <div class="col-md-4">
+        <label for="baseUser" class="form-label">Username</label>
+        <input type="text" class="form-control" id="baseUser" required>
+      </div>
+      <div class="col-md-4">
+        <label for="basePassword" class="form-label">Password</label>
+        <input type="password" class="form-control" id="basePassword" required>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label for="serviceHost" class="form-label">Service Server Host</label>
+      <input type="text" class="form-control" id="serviceHost" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="servicesRaw" class="form-label">Service Names (space or newline separated)</label>
+      <textarea class="form-control" id="servicesRaw" rows="6" placeholder="e.g. nginx.service mysql.service" required></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Check Services</button>
+  </form>
+
+  <div id="results" class="mt-5">
+    <h4>Results</h4>
+    <table class="table table-bordered table-striped">
+      <thead>
+        <tr>
+          <th>Service Name</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="resultsTableBody">
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const form = document.getElementById('checkForm');
+  const resultsTable = document.getElementById('resultsTableBody');
+  const resultsContainer = document.getElementById('results');
+
+  resultsContainer.style.display = 'none';
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const data = {
+      baseHost: document.getElementById('baseHost').value,
+      baseUser: document.getElementById('baseUser').value,
+      basePassword: document.getElementById('basePassword').value,
+      serviceHost: document.getElementById('serviceHost').value,
+      servicesRaw: document.getElementById('servicesRaw').value,
+    };
+
+    resultsTable.innerHTML = '';
+    resultsContainer.style.display = 'none';
+
+    try {
+      const res = await fetch('/check-service', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      const json = await res.json();
+
+      if (json.success) {
+        resultsContainer.style.display = 'block';
+        json.results.forEach(row => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${row.service}</td><td>${row.status}</td>`;
+          resultsTable.appendChild(tr);
+        });
+      } else {
+        alert('Error: ' + json.error || 'Unknown error');
+      }
+    } catch (err) {
+      alert('Request failed: ' + err.message);
+    }
+  });
+</script>
+
+</body>
+</html>
